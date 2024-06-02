@@ -28,9 +28,6 @@ class AuthServiceProvider extends ServiceProvider
 
         Passport::routes();
 
-        Passport::enableImplicitGrant();
-        Passport::ignoreCsrfToken();
-
         // 토큰 유효기간
         Passport::tokensExpireIn(now()->addHours(12));
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\UsersRequest;
 use App\Models\Users;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
 
@@ -34,21 +35,31 @@ class AuthController extends Controller
     public function signup(UsersRequest $request)
     {
         try {
+
             $now = date('Y-m-d H:i:s');
 
             $user = new Users([
                 'user_id' => $request->user_id,
-                'user_name' => $request->user_name,
-                'user_email' => $request->user_email,
-                'user_pw' => bcrypt($request->user_pw),
-                'user_regDt' => $now,
+                'username' => $request->username,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'created_at' => $now,
             ]);
-            $user->save();
 
-            return response()->json([
-                'status' => 'SUCCESS',
-                'message' => '['.$request->user_name.'] 사용자 생성 완료!'
-            ], 200);
+
+            if($user->save()){
+                return response()->json([
+                    'success' => true,
+                    'message' => '['.$request->username.'] 사용자 생성 완료!'
+                ]);
+            }else{
+                return response()->json([
+                    'success' => false,
+                    'message' => '사용자 생성 실패!'
+                ]);
+            }
+
+
 
         }catch(\Exception $e) {
 
@@ -61,38 +72,35 @@ class AuthController extends Controller
     /**
      * Login user and create token
      *
-     * @param  [string] email
-     * @param  [string] password
-     * @param  [boolean] remember_me
-     * @return [string] access_token
-     * @return [string] token_type
-     * @return [string] expires_at
      */
     public function login(Request $request)
     {
 
         $validator = Validator::make($request->all(), [
             'user_id' => 'required|string|min:12|max:20',
-            'user_pw' => 'required|string',
+            'password' => 'required|string',
         ]);
         if ($validator->fails())
         {
             return response(['errors'=>$validator->errors()->all()], 422);
         }
-        $user = Users::where('user_id', $request->user_id)->first();
 
-        if ($user) {
-            if (Hash::check($request->user_pw, $user->user_pw)) {
-                $success['token'] = $user->createToken('appToken')->accessToken;
-                return response($success, 200, (array)"Content-Type:application/json");
+        ;
+        //$user = Auth::user();
 
-            } else {
-                $response = ["message" => "패스워드가 일치하지 않습니다.."];
-                return response($response, 422);
-            }
+        if (Auth::attempt(['user_id' => $request->user_id, 'password' =>$request->password])) {
+            $token = auth()->user()->createToken('appToken')->accessToken;
+            Auth::login(Auth::user());
+            return response()->json([
+                'success' => true,
+                'token' => $token,
+            ]);
         } else {
             $response = ["message" =>'사용자가 존재하지 않습니다.'];
-            return response($response, 422);
+            return response()->json([
+                'success' => false,
+                $response
+            ], 422);
         }
 
     }
@@ -131,11 +139,42 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
+        Auth::logout();
 
-        $request->user()->token()->revoke();
-        return response()->json([
-            'message' => 'Successfully logged out'
-        ],200);
+        $request->session()->invalidate();
+
+        $request->session()->regenerateToken();
+
+        return redirect('/');
+        /*if (Auth::user()) {
+            $request->user()->token()->revoke();
+
+            return response()->json([
+                'success' => true,
+                'message' => '성공적으로 로그아웃되었습니다.',
+            ], 200);
+        }
+        if (Auth::check()) {
+            Auth::user()->token()->revoke();
+            return response()->json([
+                'success' => true,
+                'message' => '성공적으로 로그아웃되었습니다.'
+            ],200);
+        }else{
+            return response()->json([
+                'success' => false,
+                'message' => '인증되지 않았습니다.'
+            ],401);
+        }*/
+
+        /*$result = $request->user()->token()->revoke();
+        if($result){
+            $response = response()->json(['error'=>false,'message'=>'User logout successfully.'],200);
+        }else{
+            $response = response()->json(['error'=>true,'message'=>'Something is wrong.'],401);
+        }
+        return $response;*/
+
     }
 
     /**
@@ -147,4 +186,6 @@ class AuthController extends Controller
     {
         return response()->json($request->user());
     }
+
+
 }

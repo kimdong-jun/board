@@ -25,9 +25,9 @@ class UsersRequest extends FormRequest
     {
         return [
             'user_id' => 'required|string|min:12|max:20|unique:users|regex:/^(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[!@#$%^&*?_])/',
-            'user_name' => 'required|string',
-            'user_email' => 'required|email:rfc,dns',
-            'user_pw' => 'required|string'
+            'username' => 'required|string',
+            'email' => 'required|email:rfc,dns',
+            'password' => 'required|string'
         ];
     }
 
@@ -47,9 +47,9 @@ class UsersRequest extends FormRequest
     {
         return [
             'user_id' => '아이디',
-            'user_name' => '이름',
-            'user_email' => '이메일',
-            'user_pw' => '비밀번호'
+            'username' => '이름',
+            'email' => '이메일',
+            'password' => '비밀번호'
         ];
     }
 
